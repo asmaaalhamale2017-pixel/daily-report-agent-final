@@ -42,11 +42,30 @@ node index.js
 
 To redo the setup wizard, delete `config.json` and run the agent again.
 
+### Running the Scheduler
+
+Instead of generating a single report per run, you can start the scheduler so reports are generated automatically based on the frequency you chose during setup:
+
+```bash
+node index.js --schedule
+```
+
+or, using the npm shortcut:
+
+```bash
+npm run schedule
+```
+
+- If `frequency` is `"daily"`, a report is generated once per day (08:00).
+- If `frequency` is `"weekly"`, a report is generated once per week (Monday, 08:00).
+
+The scheduler keeps running in the foreground — leave the process running (or run it under a process manager / `screen` / `tmux`) for scheduled reports to fire. Press `Ctrl+C` to stop it. Each run logs its frequency, cron expression, and the path of every report it saves.
+
 ## Project Structure
 
 ```
 ai-agent/
-├── index.js              # Entry point — routes to setup or report generation
+├── index.js              # Entry point — routes to setup, scheduling, or report generation
 ├── config.json            # Your saved settings (generated, gitignored)
 ├── config.example.json    # Template showing the config shape
 ├── reports/                # Generated .txt reports
@@ -54,14 +73,16 @@ ai-agent/
     ├── setup.js            # First-run setup wizard
     ├── config.js           # Load/save config.json
     ├── agent.js            # Report content generation
-    └── reportStore.js      # Saves reports to the reports/ folder
+    ├── reportStore.js      # Saves reports to the reports/ folder
+    └── scheduler.js        # Cron-based scheduling (daily/weekly)
 ```
 
 ## Technologies Used
 
-- **Node.js** — the only runtime dependency; no external APIs or frameworks
+- **Node.js** — runtime
+- **[node-cron](https://www.npmjs.com/package/node-cron)** — schedules automatic daily/weekly report generation
 
 ## Roadmap
 
-- [ ] Scheduling support for automatic daily/weekly runs
+- [x] Scheduling support for automatic daily/weekly runs
 - [ ] Email delivery of generated reports

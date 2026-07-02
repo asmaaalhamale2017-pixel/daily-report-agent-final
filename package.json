@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "schedule": "node index.js --schedule"
   },
   "keywords": [],
   "author": "",
@@ -12,6 +14,7 @@
   "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.109.1",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "node-cron": "^4.5.0"
   }
 }

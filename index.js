@@ -2,10 +2,16 @@ import { configExists, loadConfig } from "./src/config.js";
 import { runSetupWizard } from "./src/setup.js";
 import { generateReport } from "./src/agent.js";
 import { saveReport } from "./src/reportStore.js";
+import { startScheduler } from "./src/scheduler.js";
 
 async function main() {
   if (!configExists()) {
     await runSetupWizard();
+    return;
+  }
+
+  if (process.argv.includes("--schedule")) {
+    startScheduler();
     return;
   }
 
