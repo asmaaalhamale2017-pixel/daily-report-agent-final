@@ -1,6 +1,7 @@
 node_modules/
 .env
 .env.*
+.env2
 !.env.example
 
 # User config (contains email) — see config.example.json for the shape
