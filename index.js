@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import http from "http";
+
 import { configExists, loadConfig } from "./src/config.js";
 import { runSetupWizard } from "./src/setup.js";
 import { saveReport } from "./src/reportStore.js";
@@ -11,6 +13,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// ================= AI REPORT =================
 async function generateAIReport(topic) {
   try {
     const response = await anthropic.messages.create({
@@ -38,19 +41,18 @@ Status:
 Claude API is currently unavailable.
 
 Summary:
-This report was generated in fallback mode.
+Fallback mode active.
 
 Key Points:
-- Daily monitoring process completed.
-- Configuration loaded successfully.
-- Scheduled execution remains operational.
-- Claude integration is configured and ready when API access becomes available.
-
-End of report.
+- System running normally
+- Scheduler active
+- Configuration loaded
+- Report generated locally
 `;
   }
 }
 
+// ================= MAIN LOGIC =================
 async function main() {
   if (!configExists()) {
     await runSetupWizard();
@@ -71,19 +73,38 @@ async function main() {
   console.log("\n" + report);
   console.log(`\nReport saved to ${filePath}`);
 }
-import http from "http";
 
+// ================= HTTP SERVER (RENDER FIX) =================
 const server = http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("AI Agent is running successfully 🚀");
+  if (req.url === "/") {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("AI Agent is running successfully 🚀");
+  } 
+  else if (req.url === "/status") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        status: "active",
+        service: "ai-agent",
+        time: new Date().toISOString(),
+      })
+    );
+  } 
+  else {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not Found");
+  }
 });
 
 const PORT = process.env.PORT || 3000;
 
+// ================= START EVERYTHING =================
 server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-main().catch((error) => {
-  console.error("\n[Agent Error]");
-  console.error(error.message);
+  console.log(`🌐 Server running on port ${PORT}`);
+
+  // تشغيل المنطق بعد تشغيل السيرفر (مهم لـ Render stability)
+  main().catch((error) => {
+    console.error("\n[Agent Error]");
+    console.error(error.message);
+  });
 });
