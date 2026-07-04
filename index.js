@@ -1,6 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config();
-
 import http from "http";
 
 import { configExists, loadConfig } from "./src/config.js";
@@ -8,12 +5,14 @@ import { runSetupWizard } from "./src/setup.js";
 import { saveReport } from "./src/reportStore.js";
 import { startScheduler } from "./src/scheduler.js";
 import Anthropic from "@anthropic-ai/sdk";
+import dotenv from "dotenv";
+dotenv.config();
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// ================= AI REPORT =================
+// ================= AI =================
 async function generateAIReport(topic) {
   try {
     const response = await anthropic.messages.create({
@@ -22,89 +21,68 @@ async function generateAIReport(topic) {
       messages: [
         {
           role: "user",
-          content: `Write a clear and structured daily tech summary about: ${topic}`,
+          content: `Write a clear daily tech summary about: ${topic}`,
         },
       ],
     });
 
     return response.content[0].text;
   } catch (error) {
-    console.log("[Agent] Claude unavailable. Using fallback mode.");
-
-    const dateLabel = new Date().toDateString();
-
-    return `
-Daily Report: ${topic}
-Date: ${dateLabel}
-
-Status:
-Claude API is currently unavailable.
-
-Summary:
-Fallback mode active.
-
-Key Points:
-- System running normally
-- Scheduler active
-- Configuration loaded
-- Report generated locally
-`;
+    return `Fallback report for: ${topic}`;
   }
 }
 
-// ================= MAIN LOGIC =================
-async function main() {
-  if (!configExists()) {
-    await runSetupWizard();
-    return;
+// ================= SERVER =================
+const server = http.createServer(async (req, res) => {
+  // الصفحة الرئيسية (UI)
+  if (req.url === "/" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "text/html" });
+    res.end(`
+      <html>
+        <head>
+          <title>AI Agent</title>
+        </head>
+        <body>
+          <h2>AI Agent 🚀</h2>
+          <form method="GET" action="/generate">
+            <input name="topic" placeholder="Enter topic..." required />
+            <button type="submit">Generate Report</button>
+          </form>
+        </body>
+      </html>
+    `);
   }
 
-  if (process.argv.includes("--schedule")) {
-    startScheduler();
-    return;
+  // توليد التقرير
+  else if (req.url.startsWith("/generate")) {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const topic = url.searchParams.get("topic");
+
+    const report = await generateAIReport(topic);
+
+    res.writeHead(200, { "Content-Type": "text/html" });
+    res.end(`
+      <h2>Generated Report</h2>
+      <pre>${report}</pre>
+      <br><a href="/">← Back</a>
+    `);
   }
 
-  const config = loadConfig();
-
-  const report = await generateAIReport(config.topic);
-
-  const filePath = saveReport(report);
-
-  console.log("\n" + report);
-  console.log(`\nReport saved to ${filePath}`);
-}
-
-// ================= HTTP SERVER (RENDER FIX) =================
-const server = http.createServer((req, res) => {
-  if (req.url === "/") {
-    res.writeHead(200, { "Content-Type": "text/plain" });
-    res.end("AI Agent is running successfully 🚀");
-  } 
+  // status
   else if (req.url === "/status") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({
-        status: "active",
-        service: "ai-agent",
-        time: new Date().toISOString(),
-      })
-    );
-  } 
+    res.end(JSON.stringify({ status: "active" }));
+  }
+
   else {
-    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.writeHead(404);
     res.end("Not Found");
   }
 });
 
+// ================= START =================
 const PORT = process.env.PORT || 3000;
 
-// ================= START EVERYTHING =================
 server.listen(PORT, () => {
-  console.log(`🌐 Server running on port ${PORT}`);
-
-  // تشغيل المنطق بعد تشغيل السيرفر (مهم لـ Render stability)
-  main().catch((error) => {
-    console.error("\n[Agent Error]");
-    console.error(error.message);
-  });
+  console.log(`Server running on port ${PORT}`);
 });
